@@ -56,7 +56,7 @@ export default function SignUp() {
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-900">
               <Coins className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">Join Pull Quest</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Join Pull Quest Now </h1>
             <p className="text-xl text-gray-600">Let’s get you started based on your role</p>
           </div>
 
