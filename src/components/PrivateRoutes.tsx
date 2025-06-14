@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
 interface JwtPayload {
-  role: string;
+  role?: string;
   exp?: number;
 }
 
@@ -13,18 +13,21 @@ interface PrivateRouteProps {
 
 const PrivateRoute = ({ allowedRoles, children }: PrivateRouteProps) => {
   const token = localStorage.getItem("token");
+  const redirectTo = "/";
 
-  if (!token) return <Navigate to="/" />;
+  if (!token) return <Navigate to={redirectTo} />;
 
   try {
-    const decoded = jwtDecode<JwtPayload>(token);
-    if (allowedRoles.includes(decoded.role)) {
+    const decodedToken = jwtDecode<JwtPayload>(token);
+
+    if (decodedToken?.role && allowedRoles.includes(decodedToken.role)) {
       return <>{children}</>;
-    } else {
-      return <Navigate to="/" />;
     }
-  } catch {
-    return <Navigate to="/" />;
+
+    return <Navigate to={redirectTo} />;
+  } catch (error) {
+    console.error("Token decoding failed:", error);
+    return <Navigate to={redirectTo} />;
   }
 };
 
