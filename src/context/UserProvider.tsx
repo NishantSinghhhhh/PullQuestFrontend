@@ -18,51 +18,50 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUserState] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUserInternal] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
-
-  const updateUser = (newUser: User | null) => {
-    setUserState(newUser)
-    if (newUser) {
-      localStorage.setItem('user', JSON.stringify(newUser))
+  const updateUser = (userData: User | null) => {
+    setUserInternal(userData)
+    if (userData) {
+      localStorage.setItem("user", JSON.stringify(userData))
     } else {
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+      localStorage.removeItem("user")
+      localStorage.removeItem("token")
     }
   }
 
   useEffect(() => {
-    const initializeUser = async () => {
-      const storedUser = localStorage.getItem('user')
-      const token = localStorage.getItem('token')
-      if (storedUser && token) {
+    const loadUserFromStorage = async () => {
+      const storedUser = localStorage.getItem("user")
+      const authToken = localStorage.getItem("token")
+      if (storedUser && authToken) {
         try {
           const parsedUser: User = JSON.parse(storedUser)
-          // Fetch fresh user info from backend
           const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/context/${encodeURIComponent(parsedUser.email || '')}`,
-            { headers: { "Authorization": `Bearer ${token}` } }
+            `${import.meta.env.VITE_API_URL}/context/${encodeURIComponent(parsedUser.email || "")}`,
+            { headers: { Authorization: `Bearer ${authToken}` } }
           )
           if (response.ok) {
-            const data = await response.json()
-            updateUser(data)
+            const userData = await response.json()
+            updateUser(userData)
           } else {
             updateUser(null)
           }
-        } catch (err) {
-          console.error("Error refreshing user context:", err)
+        } catch (error) {
+          console.error("Error refreshing user context:", error)
           updateUser(null)
         }
       }
-      setIsLoading(false)
+      setLoading(false)
     }
-    initializeUser()
+
+    loadUserFromStorage()
   }, [])
 
   const logout = () => {
     updateUser(null)
-    window.location.href = '/login'
+    window.location.href = "/login"
   }
 
   return (
@@ -70,7 +69,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       user,
       setUser: updateUser,
       logout,
-      isLoading,
+      isLoading: loading,
     }}>
       {children}
     </UserContext.Provider>
