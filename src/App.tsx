@@ -15,6 +15,7 @@ import MaintainerDashboard from "./pages/MaintainerDashboard";
 import CompanyDashboard from "./pages/CompanyDashborad";
 import ReviewPrStep from "./Flows/RepoIssuesStep";
 import NewIssueForm from "./Flows/NewIssueForm";
+import ContributorDashboard from "./pages/ContributorDashboard";
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
             element={
               <PrivateRoute allowedRoles={["contributor"]}>
                 <Dashboard role="Contributor" />
+                <ContributorDashboard />
               </PrivateRoute>
             }
           />
@@ -61,7 +63,7 @@ const App = () => {
           path="/company/dashboard"
           element={
             <PrivateRoute allowedRoles={["company"]}>
-              <CompanyDashboard/>
+              <Dashboard role="Company" />
             </PrivateRoute>
           }
           />
