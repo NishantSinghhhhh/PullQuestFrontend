@@ -41,7 +41,7 @@ export const useLogin = () => {
       })
 
       // 3) navigate
-      navigate(`/${payload.role}/dashboard`)
+      // navigate(`/${payload.role}/dashboard`)
       return { success: true }
     } catch (err: any) {
       const message = err.response?.data?.message || "Login failed"

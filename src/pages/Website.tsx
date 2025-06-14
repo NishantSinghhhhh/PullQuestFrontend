@@ -93,17 +93,17 @@ export default function PullQuestLanding() {
               </p>
 
               <div className="space-y-4">
-                <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-md flex items-center justify-center"  onClick={() => navigate("/login")}>
+                {/* <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-md flex items-center justify-center"  onClick={() => navigate("/login")}>
                   <Github className="w-5 h-5 mr-2" />
                   Sign up with GitHub
-                </Button>
+                </Button> */}
 
                 <Button
                   onClick={() => navigate("/login")}
                   variant="outline"
                   className="w-full border-gray-300 text-gray-700 py-3 rounded-md flex items-center justify-center"
                 >
-                  Sign up with email
+                  Get Started
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>

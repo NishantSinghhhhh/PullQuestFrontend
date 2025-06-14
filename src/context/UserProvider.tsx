@@ -18,50 +18,56 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined)
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUserInternal] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUserState] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const updateUser = (userData: User | null) => {
-    setUserInternal(userData)
-    if (userData) {
-      localStorage.setItem("user", JSON.stringify(userData))
+
+  const updateUser = (newUser: User | null) => {
+    setUserState(newUser)
+    if (newUser) {
+      localStorage.setItem('user', JSON.stringify(newUser))
     } else {
-      localStorage.removeItem("user")
-      localStorage.removeItem("token")
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
     }
   }
 
-  useEffect(() => {
-    const loadUserFromStorage = async () => {
-      const storedUser = localStorage.getItem("user")
-      const authToken = localStorage.getItem("token")
-      if (storedUser && authToken) {
-        try {
-          const parsedUser: User = JSON.parse(storedUser)
-          const response = await fetch(
-            `${import.meta.env.VITE_API_URL}/context/${encodeURIComponent(parsedUser.email || "")}`,
-            { headers: { Authorization: `Bearer ${authToken}` } }
-          )
-          if (response.ok) {
-            const userData = await response.json()
-            updateUser(userData)
-          } else {
-            updateUser(null)
-          }
-        } catch (error) {
-          console.error("Error refreshing user context:", error)
-          updateUser(null)
-        }
-      }
-      setLoading(false)
-    }
+// src/context/UserContext.tsx
+useEffect(() => {
+  const initializeUser = async () => {
+    const storedUser = localStorage.getItem("user");
+    const token      = localStorage.getItem("token");
 
-    loadUserFromStorage()
-  }, [])
+    if (storedUser && token) {
+      try {
+        // hit the /api/user route instead of /context/…
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/user`,
+          {
+            credentials: "include",                // send the session cookie
+            headers: { "Authorization": `Bearer ${token}` },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          updateUser(data);
+        } else {
+          updateUser(null);
+        }
+      } catch (err) {
+        console.error("Error refreshing user context:", err);
+        updateUser(null);
+      }
+    }
+    setIsLoading(false);
+  };
+  initializeUser();
+}, []);
+
 
   const logout = () => {
     updateUser(null)
-    window.location.href = "/login"
+    window.location.href = '/login'
   }
 
   return (
@@ -69,7 +75,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       user,
       setUser: updateUser,
       logout,
-      isLoading: loading,
+      isLoading,
     }}>
       {children}
     </UserContext.Provider>
