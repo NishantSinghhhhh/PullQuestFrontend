@@ -183,7 +183,7 @@ export default function LoginPage() {
                   }
                   disabled={isLoading}
                 >
-                  <Github className="mr-2" /> Sign in with GitHub
+                  <Github className="mr-2" /> Sign inn with GitHub
                 </Button>
               </form>
 
