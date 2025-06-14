@@ -6,6 +6,7 @@ interface User {
   email?: string
   role: "contributor" | "maintainer" | "company"
   githubUsername?: string
+  accessToken: string
 }
 
 interface UserContextType {

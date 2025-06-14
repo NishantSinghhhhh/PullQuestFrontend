@@ -1,3 +1,4 @@
+import ContributorDashboard from "./ContributorDashboard";
 import MaintainerDashboard from "./MaintainerDashboard";
 import { useEffect, useState } from "react";
 
@@ -14,15 +15,15 @@ const Dashboard = ({ role }: Props) => {
 
   if (!isMounted) return null;
 
-  return (
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      {role === "maintainer" ? (
-        <MaintainerDashboard />
-      ) : (
-        <h1 className="text-3xl font-bold">Welcome to {role} Dashboard</h1>
-      )}
-    </div>
-  );
+  <div className="h-screen flex items-center justify-center bg-gray-100">
+    {role === "maintainer" ? (
+      <MaintainerDashboard />
+    ) : role === "contributor" ? (
+      <ContributorDashboard />
+    ) : (
+      <h1 className="text-3xl font-bold">Welcome to {role} Dashboard</h1>
+    )}
+  </div>;
 };
 
 export default Dashboard;
