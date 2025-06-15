@@ -184,11 +184,10 @@ const handleFeedbackSubmit = async (
           headers: { Authorization: jwt ? `Bearer ${jwt}` : undefined },
         }
       );
+
       console.log("✅ Ingestion complete");
-  
-      /* ───────── 4. Update contributor’s XP + coins ───────── */
       await axios.patch(
-        `${base}/api/users/update-stats`,
+      `${base}/api/maintainer/users/update-stats`,
         { githubUsername, addedXp: totalXP, addedCoins: coinsAwarded },
         { withCredentials: true, headers: { Authorization: jwt ? `Bearer ${jwt}` : undefined } }
       );
