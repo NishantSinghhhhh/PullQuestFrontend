@@ -17,11 +17,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCalculateXp } from "@/hooks/useCalculateXp"
 import MergeFeedbackDialog from "./DialogPRs"
+import axios from "axios"
 
 interface RawPR {
   number: number
   title: string
-  body: string
+  body: string   
   user: { login: string; avatar_url?: string }
   state: "open" | "closed"
   created_at: string
@@ -41,6 +42,10 @@ interface RawPR {
 interface PRCardProps {
   pr: RawPR
   isSelected: boolean
+  staking?: number
+  githubUsername: string
+  owner: string        // Add owner prop
+  repo: string         // Add repo prop
   onSelect: () => void
   onFetchIssue: () => void
   onClosePR: () => void
@@ -49,6 +54,10 @@ interface PRCardProps {
 
 export default function PRCard({
   pr,
+  staking,
+  githubUsername,
+  owner,              // Add owner to destructuring
+  repo,               // Add repo to destructuring
   isSelected,
   onSelect,
   onFetchIssue,
@@ -58,15 +67,42 @@ export default function PRCard({
   const [showMergeDialog, setShowMergeDialog] = useState(false)
   const { calculateXp } = useCalculateXp()
 
-  const handleFeedbackSubmit = (feedback: {
+  const handleFeedbackSubmit = async (feedback: {
     ratings: Record<string, number>
     bonuses: Record<string, boolean>
   }) => {
-    const xpResult = calculateXp(feedback)
-    console.log("📝 Feedback:", feedback)
-    console.log("🏆 XP Result:", xpResult)
+    try {
+      const xpResult = calculateXp(feedback)
+      const totalXP = xpResult.totalXP
 
-    // Optionally: send xpResult to backend or show toast
+      const base = import.meta.env.VITE_API_URL || "http://localhost:8012"
+      const jwt = localStorage.getItem("token")
+
+      await axios.post(
+        `${base}/api/maintainer/merge-pr`,
+        {
+          owner,                    // Now properly defined
+          repo,                     // Now properly defined
+          pull_number: pr.number,   // Renamed from prNumber
+          author: pr.user.login,
+          staking,
+          xp: totalXP,
+        },
+        {
+          withCredentials: true,
+          headers: { Authorization: jwt ? `Bearer ${jwt}` : undefined },
+        }
+      )
+
+      console.log("✅ Merged PR", pr.number)
+      console.log("👤 Author:", githubUsername)
+      console.log("💰 Staking:", staking)
+      console.log("🏆 XP awarded:", totalXP)
+    } catch (err: any) {
+      console.error("❌ Merge PR failed:", err.response?.data?.message || err.message)
+    }
+
+    setShowMergeDialog(false)
     onMergePR()
   }
 
@@ -102,11 +138,19 @@ export default function PRCard({
                       </Badge>
                     )}
                   </div>
+                  <div>
+                    {staking != null && (
+                      <div className="flex items-center space-x-1 text-sm text-yellow-700">
+                        <span>💰</span>
+                        <span className="font-medium">{staking}</span>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
                     <span className="font-medium text-gray-700">#{pr.number}</span>
                     <div className="flex items-center space-x-1">
                       <User className="w-3 h-3" />
-                      <span>{pr.user.login}</span>
+                      <span>{githubUsername}</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Clock className="w-3 h-3" />
