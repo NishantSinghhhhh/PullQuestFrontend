@@ -284,23 +284,30 @@ export default function MergeFeedbackDialog({
               </Button>
               <Button
                 onClick={() => {
-                  const ratings = Object.fromEntries(
+                    const ratings = Object.fromEntries(
                     Object.entries(sliderValues).filter(([k]) => questions.includes(k))
-                  )
-                  const bonuses = Object.fromEntries(
+                    )
+                    const bonuses = Object.fromEntries(
                     bonusItems.map(({ text }) => [text, !!sliderValues[text]])
-                  )
-
-                  onSubmitFeedback({
+                    )
+                
+                    console.log("📊 Merge Feedback Summary:")
+                    console.log("Ratings:", ratings)
+                    console.log("Bonuses:", bonuses)
+                    console.log("Total Score:", totalScore)
+                    console.log("Bonus Score:", bonusScore)
+                
+                    onSubmitFeedback({
                     ratings,
                     bonuses,
                     totalScore,
                     bonusScore,
-                  })
-
-                  setShowMergeDialog(false)
-                  onMergePR()
+                    })
+                
+                    setShowMergeDialog(false)
+                    onMergePR()
                 }}
+  
                 className="bg-green-600 hover:bg-green-700 text-white shadow-sm"
                 disabled={totalScore === 0}
               >

@@ -15,8 +15,9 @@ import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-
+import { useCalculateXp } from "@/hooks/useCalculateXp"
 import MergeFeedbackDialog from "./DialogPRs"
+
 interface RawPR {
   number: number
   title: string
@@ -54,7 +55,20 @@ export default function PRCard({
   onClosePR,
   onMergePR,
 }: PRCardProps) {
-const [showMergeDialog, setShowMergeDialog] = useState(false)
+  const [showMergeDialog, setShowMergeDialog] = useState(false)
+  const { calculateXp } = useCalculateXp()
+
+  const handleFeedbackSubmit = (feedback: {
+    ratings: Record<string, number>
+    bonuses: Record<string, boolean>
+  }) => {
+    const xpResult = calculateXp(feedback)
+    console.log("📝 Feedback:", feedback)
+    console.log("🏆 XP Result:", xpResult)
+
+    // Optionally: send xpResult to backend or show toast
+    onMergePR()
+  }
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -164,11 +178,15 @@ const [showMergeDialog, setShowMergeDialog] = useState(false)
                       </div>
                       <div>
                         <span className="text-gray-500">Created:</span>
-                        <span className="ml-2 font-medium text-gray-900">{new Date(pr.created_at).toLocaleDateString()}</span>
+                        <span className="ml-2 font-medium text-gray-900">
+                          {new Date(pr.created_at).toLocaleDateString()}
+                        </span>
                       </div>
                       <div>
                         <span className="text-gray-500">Updated:</span>
-                        <span className="ml-2 font-medium text-gray-900">{new Date(pr.updated_at).toLocaleDateString()}</span>
+                        <span className="ml-2 font-medium text-gray-900">
+                          {new Date(pr.updated_at).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
 
@@ -185,11 +203,10 @@ const [showMergeDialog, setShowMergeDialog] = useState(false)
                         size="sm"
                         onClick={() => setShowMergeDialog(true)}
                         className="bg-[#34d399] hover:bg-[#10b981] text-white font-semibold px-4 py-2 rounded-md transition flex items-center"
-                        >
+                      >
                         <CheckCircle2 className="w-4 h-4 mr-1" />
                         Merge PR
-                        </Button>
-
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -214,9 +231,8 @@ const [showMergeDialog, setShowMergeDialog] = useState(false)
         showMergeDialog={showMergeDialog}
         setShowMergeDialog={setShowMergeDialog}
         onMergePR={onMergePR}
-
-        />
-
+        onSubmitFeedback={handleFeedbackSubmit}
+      />
     </>
   )
 }

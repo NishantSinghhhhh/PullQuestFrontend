@@ -34,11 +34,12 @@ export const useLogin = () => {
 
       // 2) Prime context from payload
       setUser({
-        id: "",                   // will be refreshed by UserProvider effect
-        email: payload.email,
-        role: payload.role,
-        githubUsername: payload.githubUsername,
-      })
+              id: "",                   // will be refreshed by UserProvider effect
+              email: payload.email,
+              role: payload.role,
+              githubUsername: payload.githubUsername,
+              accessToken: token,       // Add accessToken from the login response
+            })
 
       // 3) navigate
       // navigate(`/${payload.role}/dashboard`)
