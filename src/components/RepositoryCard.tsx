@@ -1,28 +1,27 @@
 // src/components/RepositoryCard.tsx
-"use client"
+"use client";
 
-import React from "react"
 import {
   Github,
   Star,
   GitBranch,
   Calendar,
   ExternalLink,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export interface RepositoryCardProps {
-  name: string
-  description: string
-  htmlUrl: string
-  language: string
-  stars: number
-  lastCommit: string
-  openIssues: number
-  hasActiveBounties?: boolean
-  /** Called when the user clicks “Review PRs” (or the whole card) */
-  onClick?: () => void
+  name: string;
+  description: string;
+  htmlUrl: string;
+  language: string;
+  stars: number;
+  lastCommit: string;
+  openIssues: number;
+  hasActiveBounties?: boolean;
+  onClickIssues?: () => void; // 🔹 Handler for Issues
+  onClickPRs?: () => void;    // 🔹 Handler for PRs
 }
 
 export default function RepositoryCard({
@@ -34,14 +33,13 @@ export default function RepositoryCard({
   lastCommit,
   openIssues,
   hasActiveBounties = false,
-  onClick,
+  onClickIssues,
+  onClickPRs,
 }: RepositoryCardProps) {
   return (
     <div
       className="bg-white rounded-lg shadow p-6 space-y-4 hover:border-gray-300 transition-colors"
-      style={{ cursor: onClick ? "pointer" : "default" }}
-      // If you want the *entire* card clickable, uncomment the next line:
-      // onClick={onClick}
+      style={{ cursor: (onClickIssues || onClickPRs) ? "pointer" : "default" }}
     >
       {/* ---------- top section ---------- */}
       <div className="flex justify-between items-start">
@@ -109,10 +107,20 @@ export default function RepositoryCard({
           <Button
             size="sm"
             className="bg-gray-900 text-white"
-            onClick={onClick}
-            disabled={!onClick}
+            onClick={onClickIssues}
+            disabled={!onClickIssues}
           >
-            Review PRs
+                       Review PRs
+          </Button>
+
+          <Button
+            size="sm"
+            className="bg-gray-900 text-white"
+            onClick={onClickPRs}
+            disabled={!onClickPRs}
+          >
+             See Issues
+
           </Button>
         </div>
 
@@ -122,5 +130,5 @@ export default function RepositoryCard({
         </div>
       </div>
     </div>
-  )
+  );
 }

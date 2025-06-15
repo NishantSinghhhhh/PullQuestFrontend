@@ -15,7 +15,7 @@ import MaintainerDashboard from "./pages/MaintainerDashboard";
 import CompanyDashboard from "./pages/CompanyDashborad";
 import ReviewPrStep from "./Flows/RepoIssuesStep";
 import NewIssueForm from "./Flows/NewIssueForm";
-import ContributorDashboard from "./pages/ContributorDashboard";
+import RepoPrs from "./Flows/RepoPrs";import ContributorDashboard from "./pages/ContributorDashboard";
 
 const App = () => {
   return (
@@ -54,6 +54,10 @@ const App = () => {
         path="/maintainer/repo/:owner/:repo/issues/new"
         element={<NewIssueForm />}
       />
+        <Route
+        path="/maintainer/repo/:owner/:repo/issues"
+        element={<RepoPrs />}  // ← replace with your actual issues component
+      />
 
       <Route
         path="/maintainer/repo/:owner/:repo/prs"
@@ -63,13 +67,11 @@ const App = () => {
           path="/company/dashboard"
           element={
             <PrivateRoute allowedRoles={["company"]}>
-              <Dashboard role="Company" />
+              <CompanyDashboard />
             </PrivateRoute>
           }
           />
-        
-        {/* Catch-all route should be LAST */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+      
       </Routes>
 
       {/* ✅ Mount Toaster ONCE here */}

@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ArrowLeft,
   FileText,
+  Coins,
 } from "lucide-react";
 
 interface CreateResp {
@@ -25,6 +26,7 @@ interface CreateResp {
   number?: number;
   message?: string;
 }
+
 
 const PRESET_LABELS = [
   { name: "bug", color: "bg-red-100 text-red-800 border-red-200" },
@@ -44,10 +46,11 @@ export default function NewIssueForm() {
   const [labels, setLabels] = useState<string[]>([]);
   const [assignees, setAssignees] = useState<string>("");
   const [milestone, setMilestone] = useState<string>("");
+  const [stake, setStake] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Debug: log the user object so you can see the GitHub token
+  // Debug log
   useEffect(() => {
     console.log("🧑 user from context:", user);
   }, [user]);
@@ -67,59 +70,110 @@ export default function NewIssueForm() {
       prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]
     );
 
-  const handleSubmit = async () => {
-    if (!title.trim()) {
-      setError("Title is required");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
+    const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8012";
 
-    const payload = {
-      owner,
-      repo,
-      title,
-      body,
-      labels,
-      assignees: assignees
-        .split(",")
-        .map((a) => a.trim())
-        .filter(Boolean),
-      milestone: milestone || undefined,
-      // send the GitHub token from user context
-      githubToken: user.accessToken,
-    };
-
-    console.log("🚀 sending payload to backend:", payload);
-
-    const url =
-      `${import.meta.env.VITE_API_URL || "http://localhost:8012"}` +
-      `/api/maintainer/create-issue`;
-    // your own JWT for authenticating with your backend
-    const appJwt = localStorage.getItem("token");
-    const cfg = {
-      withCredentials: true,
-      headers: {
-        Authorization: appJwt ? `Bearer ${appJwt}` : undefined,
-      },
-    };
-
-    try {
-      const res = await axios.post<CreateResp>(url, payload, cfg);
-      console.log("⬅️ backend response:", res.data);
-      if (res.data.success) {
-        navigate(`/maintainer/repo/${owner}/${repo}/issues`);
-      } else {
-        setError(res.data.message || "Issue creation failed");
+    const handleSubmit = async () => {
+      if (!title.trim()) {
+        setError("Title is required");
+        return;
       }
-    } catch (e: any) {
-      console.error("❌ error creating issue:", e);
-      setError(e.response?.data?.message || e.message || "Unknown error");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      setSubmitting(true);
+      setError(null);
+      
+    console.log("🎯 Current stake value:", stake); // Debug log
+    console.log("🎯 Type of stake:", typeof stake); // Debug log
 
+      // 1) build the payload for GitHub
+      const createPayload = {
+        owner,
+        repo,
+        title,
+        body,
+        labels,
+        assignees: assignees
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean),
+        milestone: milestone || undefined,
+        stake,
+        githubToken: user.accessToken,
+      };
+      
+      const appJwt = localStorage.getItem("token");
+      const headers = {
+        withCredentials: true,
+        headers: { Authorization: appJwt ? `Bearer ${appJwt}` : undefined }
+      };
+      
+      try {
+        // 2) create on GitHub
+        const { data: createRes } = await axios.post<CreateResp>(
+          `${API_BASE}/api/maintainer/create-issue`,
+          createPayload,
+          headers
+        );
+        if (!createRes.success) {
+          throw new Error(createRes.message || "GitHub issue creation failed");
+        }
+        const ghIssue = createRes.data!;
+        
+        console.log("GitHub issue created:", ghIssue);
+        console.log("User data:", user);
+        
+        // 3) Enhanced ingest payload with aRepRepository Dashboardository Dashboardll required data
+        const ingestPayload = {
+          userId: user._id || user.id, // Make sure this field exists
+          githubUsername: user.profile?.username || user.username || user.githubUsername,
+          repository: { 
+            owner, 
+            repo 
+          },
+          issue: {
+            ...ghIssue,
+            // Add repository data that might be missing from GitHub response
+            repository: {
+              id: 0, // Will be handled by backend
+              name: repo,
+              owner: {
+                login: owner
+              },
+              full_name: `${owner}/${repo}`,
+              html_url: `https://github.com/${owner}/${repo}`,
+              language: "", // Backend will handle fallback
+              stargazers_count: 0,
+              forks_count: 0,
+              description: ""
+            }
+          },
+          stakingRequired: stake,
+          userAccessToken: user.accessToken, // Add this for repository fetching
+        };
+        
+        console.log("Ingest payload:", ingestPayload);
+        
+        const { data: ingestRes } = await axios.post<{
+          success: boolean;
+          message?: string;
+        }>(
+          `http://localhost:8012/api/maintainer/ingest-issue`,
+          ingestPayload,
+          headers
+        );
+        
+        if (!ingestRes.success) {
+          throw new Error(ingestRes.message || "Failed to save issue locally");
+        }
+        
+        // 4) on total success, navigate back
+        navigate(`/maintainer/dashboard`);
+      } catch (err: any) {
+        console.error("❌ error creating/ingesting issue:", err);
+        setError(err.response?.data?.message || err.message || "Unknown error");
+      } finally {
+        setSubmitting(false);
+      }
+    };
+    
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       {/* Back & Header */}
@@ -185,7 +239,9 @@ export default function NewIssueForm() {
                   key={name}
                   onClick={() => toggleLabel(name)}
                   className={`cursor-pointer border ${
-                    labels.includes(name) ? color : "bg-gray-50 text-gray-600 border-gray-200"
+                    labels.includes(name)
+                      ? color
+                      : "bg-gray-50 text-gray-600 border-gray-200"
                   }`}
                 >
                   {name}
@@ -204,7 +260,9 @@ export default function NewIssueForm() {
             <div>
               <div className="flex items-center space-x-2 mb-2">
                 <Users className="w-4 h-4 text-gray-500" />
-                <label className="text-sm font-medium text-gray-700">Assignees</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Assignees
+                </label>
               </div>
               <Input
                 placeholder="username1, username2"
@@ -212,12 +270,16 @@ export default function NewIssueForm() {
                 onChange={(e) => setAssignees(e.target.value)}
                 disabled={submitting}
               />
-              <p className="text-xs text-gray-500 mt-1">comma-separated GitHub logins</p>
+              <p className="text-xs text-gray-500 mt-1">
+                comma-separated GitHub logins
+              </p>
             </div>
             <div>
               <div className="flex items-center space-x-2 mb-2">
                 <Target className="w-4 h-4 text-gray-500" />
-                <label className="text-sm font-medium text-gray-700">Milestone</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Milestone
+                </label>
               </div>
               <Input
                 placeholder="Milestone title or number"
@@ -226,6 +288,35 @@ export default function NewIssueForm() {
                 disabled={submitting}
               />
               <p className="text-xs text-gray-500 mt-1">optional</p>
+            </div>
+          </div>
+
+          <div className="border-t pt-6 flex items-center space-x-3">
+            <Coins className="w-5 h-5 text-gray-500" />
+            <div className="flex-1">
+              <label className="text-sm font-medium text-gray-700">
+                Stake (coins)
+              </label>
+              <Input
+                type="number"
+                min={15}
+                max={30}
+                value={stake}
+                onChange={(e) => {
+                  const value = Math.max(15, Math.min(30, Number(e.target.value)));
+                  setStake(value);
+                  console.log("🎯 Stake updated to:", value); // Debug log
+                }}
+                disabled={submitting}
+                className="w-32"
+                placeholder="15-30"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                You must stake between 15 and 30 coins.
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Current stake: {stake} coins
+              </p>
             </div>
           </div>
 
@@ -240,8 +331,10 @@ export default function NewIssueForm() {
 
         {/* Footer */}
         <div className="border-t bg-gray-50 px-8 py-6 rounded-b-lg flex justify-between items-center">
-          <span className="text-sm text-gray-600">Issues track bugs, features & tasks</span>
-          <div className="space-x-3">
+          <span className="text-sm text-gray-600">
+            Issues track bugs, features & tasks
+          </span>
+          <div className="space-x-3">  
             <Button variant="outline" onClick={() => navigate(-1)} disabled={submitting}>
               Cancel
             </Button>
