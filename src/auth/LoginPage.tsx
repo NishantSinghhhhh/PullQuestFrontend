@@ -36,6 +36,38 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoading, error } = useLogin();
 
+  // Handle OAuth redirect from GitHub
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const userParam = params.get("user");
+    
+    if (userParam) {
+      try {
+        const decoded = decodeURIComponent(userParam);
+        const oauthUser = JSON.parse(decoded);
+        console.log("OAuth user received:", oauthUser);
+
+        // Store in context
+        setUser(oauthUser);
+        toast.success("Login successful! Redirecting…");
+
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Route to the right dashboard
+        if (oauthUser.role) {
+          navigate(`/${oauthUser.role}/dashboard`, { replace: true });
+        } else {
+          navigate("/contributor/dashboard", { replace: true });
+        }
+      } catch (e) {
+        console.error("Failed to parse OAuth user:", e);
+        toast.error("Login error. Please try again.");
+        navigate("/login", { replace: true });
+      }
+    }
+  }, [navigate, setUser]);
+
   // Handle initial login (Case 1)
   const handleInitialLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,54 +78,35 @@ export default function LoginPage() {
     }
 
     const result = await login({
-      role,
+      role: role || "contributor",
       email,
       password,
       githubUsername: (role === "contributor" || role === "maintainer") ? githubUsername : undefined,
     });
 
     if (result.success) {
-      // User verified, move to GitHub OAuth case
-      setIsVerified(true);
-      setCurrentCase("github_oauth");
+      // Only proceed to OAuth for contributor/maintainer
+      if (role === "contributor" || role === "maintainer") {
+        setIsVerified(true);
+        setCurrentCase("github_oauth");
+      } else {
+        // For company users, redirect directly to dashboard
+        navigate(`/${role}/dashboard`);
+      }
     }
-    // Error handling is done by the hook
   };
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const userParam = params.get("user");
-    if (!userParam) {
-      // No user data → back to login
-      navigate("/login", { replace: true });
-      return;
-    }
-
-    try {
-      const decoded = decodeURIComponent(userParam);
-      const oauthUser = JSON.parse(decoded);
-      console.log("OAuth user received:", oauthUser);
-
-      // 1) Store in context
-      setUser(oauthUser);
-      toast.success("Login successful! Redirecting…");
-
-      // 2) Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-
-      // 3) Route to the right dashboard
-      if (oauthUser.role) {
-        navigate(`/${oauthUser.role}/dashboard`, { replace: true });
-      } else {
-        // fallback if role missing
-        navigate("/contributor/dashboard", { replace: true });
-      }
-    } catch (e) {
-      console.error("Failed to parse OAuth user:", e);
-      toast.error("Login error. Please try again.");
-      navigate("/login", { replace: true });
-    }
-  }, [navigate, setUser]);
+  // Handle GitHub OAuth
+  const handleGitHubOAuth = () => {
+    // Store user data for after OAuth
+    localStorage.setItem(
+      "preOAuthUser",
+      JSON.stringify({ role, email, githubUsername })
+    );
+    
+    // Redirect to GitHub OAuth
+    window.location.href = `${import.meta.env.VITE_API_URL || "http://localhost:8012"}/auth/github`;
+  };
 
   // Render Case 1: Initial Login
   const renderInitialLogin = () => (
@@ -247,14 +260,7 @@ export default function LoginPage() {
           </div>
 
           <Button
-            onClick={() => {
-              // Store the role, email, githubUsername for after OAuth
-              localStorage.setItem(
-                "preOAuthUser",
-                JSON.stringify({ role, email, githubUsername })
-              );
-              window.location.href = "http://localhost:8012/auth/github";
-            }}
+            onClick={handleGitHubOAuth}
             className="w-full h-12 bg-gray-900 text-white"
             disabled={isLoading}
           >
@@ -265,7 +271,10 @@ export default function LoginPage() {
 
           <Button
             variant="outline"
-            onClick={() => setCurrentCase("initial")}
+            onClick={() => {
+              setCurrentCase("initial");
+              setIsVerified(false);
+            }}
             className="w-full h-12"
             disabled={isLoading}
           >

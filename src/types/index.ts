@@ -31,6 +31,12 @@ export interface User {
   createdAt: string;
   githubInfo: GitHubInfo;
   recentStakes?: RecentStake[];
+  accessToken?: string; // Add this since it's used in login flow
+  profile?: {
+    name?: string;
+    bio?: string;
+    username?: string; // Add this since some components reference it
+  };
 }
 
 export interface Rank {

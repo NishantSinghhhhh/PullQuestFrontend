@@ -15,69 +15,102 @@ import MaintainerDashboard from "./pages/MaintainerDashboard";
 import CompanyDashboard from "./pages/CompanyDashborad";
 import ReviewPrStep from "./Flows/RepoIssuesStep";
 import NewIssueForm from "./Flows/NewIssueForm";
-import RepoPrs from "./Flows/RepoPrs";import ContributorDashboard from "./pages/ContributorDashboard";
+import RepoPrs from "./Flows/RepoPrs";
+import ContributorDashboard from "./pages/ContributorDashboard";
+import ContributorProfile from "./components/contributor/ContributorProfile";
+import IssueDetailsPage from "./components/IssueDetailsPage";
+import ContributorSettings from "./components/ContributorSettings";
+import { UserProvider } from "./context/UserProvider";
 
 const App = () => {
   return (
-    <Router>
-      <div className="App">
-       <Routes>
-        <Route path="/" element={<Website />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signUp" element={<SignUp />} />
-
-          <Route
-            path="/contributor/dashboard"
-            element={
-              <PrivateRoute allowedRoles={["contributor"]}>
-                <Dashboard role="Contributor" />
-                <ContributorDashboard />
-              </PrivateRoute>
-            }
-          />
-
-        <Route
-          path="/maintainer/dashboard"
-          element={
-            <PrivateRoute allowedRoles={["maintainer"]}>
-              <MaintainerDashboard/>
-            </PrivateRoute>
-          }
-          />
+    <UserProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            <Route path="/" element={<Website />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signUp" element={<SignUp />} />
             
-        <Route
-          path="/maintainer/open-issue/:number"
-          element={<OpenIssuePage />}
-        />
-        
-        <Route
-        path="/maintainer/repo/:owner/:repo/issues/new"
-        element={<NewIssueForm />}
-      />
-        <Route
-        path="/maintainer/repo/:owner/:repo/issues"
-        element={<RepoPrs />}  // ← replace with your actual issues component
-      />
+            {/* contributor routes */}
+            <Route
+              path="/contributor/dashboard"
+              element={
+                <PrivateRoute allowedRoles={["contributor"]}>
+                  <ContributorDashboard />
+                </PrivateRoute>
+              }
+            />
 
-      <Route
-        path="/maintainer/repo/:owner/:repo/prs"
-        element={<ReviewPrStep />}
-      />
-        <Route
-          path="/company/dashboard"
-          element={
-            <PrivateRoute allowedRoles={["company"]}>
-              <CompanyDashboard />
-            </PrivateRoute>
-          }
-          />
-      
-      </Routes>
+            <Route 
+              path="/contributor/profile" 
+              element={
+                <PrivateRoute allowedRoles={["contributor"]}>
+                  <ContributorProfile />
+                </PrivateRoute>
+              }
+            />
 
-      {/* ✅ Mount Toaster ONCE here */}
-      <Toaster />
-    </div>
-    </Router>
+            <Route 
+              path="/contributor/issue/:issueId" 
+              element={
+                <PrivateRoute allowedRoles={["contributor"]}>
+                  <IssueDetailsPage />
+                </PrivateRoute>
+              }
+            />
+
+            <Route 
+              path="/contributor/settings" 
+              element={
+                <PrivateRoute allowedRoles={["contributor"]}>
+                  <ContributorSettings />
+                </PrivateRoute>
+              }
+            />
+
+            {/* maintainer routes */}
+            <Route
+              path="/maintainer/dashboard"
+              element={
+                <PrivateRoute allowedRoles={["maintainer"]}>
+                  <MaintainerDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/maintainer/open-issue/:number"
+              element={<OpenIssuePage />}
+            />
+            <Route
+              path="/maintainer/repo/:owner/:repo/issues/new"
+              element={<NewIssueForm />}
+            />
+            <Route
+              path="/maintainer/repo/:owner/:repo/issues"
+              element={<RepoPrs />}
+            />
+            <Route
+              path="/maintainer/repo/:owner/:repo/prs"
+              element={<ReviewPrStep />}
+            />
+            
+            {/* company routes */}
+            <Route
+              path="/company/dashboard"
+              element={
+                <PrivateRoute allowedRoles={["company"]}>
+                  <CompanyDashboard />
+                </PrivateRoute>
+              }
+            />
+          </Routes>
+
+          {/* ✅ Mount Toaster ONCE here */}
+          <Toaster />
+        </div>
+      </Router>
+    </UserProvider>
   );
 };
 
