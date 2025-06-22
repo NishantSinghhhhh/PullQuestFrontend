@@ -34,7 +34,6 @@ export function RepositoryCardList({
   currentPage,
   perPage,
   onPageChange,
-  onPerPageChange,
 }: RepositoryCardListProps) {
   // filter + paginate
   const filtered = repos.filter(
