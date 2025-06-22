@@ -816,7 +816,7 @@ export default function PullQuestLanding() {
           </div>
 
           <div className="border-t border-gray-200 mt-8 pt-8 flex justify-between items-center">
-            <p className="text-sm text-gray-600">© 2024 Pull Quest. All rights reserved.</p>
+            <p className="text-sm text-gray-600">© 2025 Pull Quest. All rights reserved.</p>
             <div className="flex space-x-6">
               <a href="#" className="text-sm text-gray-600 hover:text-gray-900">
                 Privacy Policy

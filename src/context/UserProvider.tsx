@@ -1,92 +1,94 @@
 // src/context/UserContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import Cookie from "js-cookie";
 
 interface User {
-  id: string
-  email?: string
-  role: "contributor" | "maintainer" | "company"
-  githubUsername?: string
-  accessToken: string
+  id: string;
+  email?: string;
+  role: "contributor" | "maintainer" | "company";
+  githubUsername?: string;
+  accessToken: string; // the JWT
 }
 
 interface UserContextType {
-  user: User | null
-  setUser: (user: User | null) => void
-  logout: () => void
-  isLoading: boolean
+  user: User | null;
+  setUser: (u: User | null) => void;
+  logout: () => void;
+  isLoading: boolean;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined)
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUserState] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUserState] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-
-  const updateUser = (newUser: User | null) => {
-    setUserState(newUser)
-    if (newUser) {
-      localStorage.setItem('user', JSON.stringify(newUser))
+  const setUser = (u: User | null) => {
+    setUserState(u);
+    if (u) {
+      Cookie.set("pq_user", JSON.stringify(u), { expires: 30 });
+      Cookie.set("pq_token", u.accessToken, { expires: 30 });
     } else {
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+      Cookie.remove("pq_user");
+      Cookie.remove("pq_token");
     }
-  }
-
-// src/context/UserContext.tsx
-useEffect(() => {
-  const initializeUser = async () => {
-    const storedUser = localStorage.getItem("user");
-    const token      = localStorage.getItem("token");
-
-    if (storedUser && token) {
-      try {
-        // hit the /api/user route instead of /context/…
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/user`,
-          {
-            credentials: "include",                // send the session cookie
-            headers: { "Authorization": `Bearer ${token}` },
-          }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          updateUser(data);
-        } else {
-          updateUser(null);
-        }
-      } catch (err) {
-        console.error("Error refreshing user context:", err);
-        updateUser(null);
-      }
-    }
-    setIsLoading(false);
   };
-  initializeUser();
-}, []);
 
+  useEffect(() => {
+    const bootstrap = async () => {
+      const storedUser = Cookie.get("pq_user");
+      const token = Cookie.get("pq_token");
+
+      if (storedUser && token) {
+        try {
+          // optional server refresh
+          const res = await fetch(
+            `${import.meta.env.VITE_API_URL || "http://localhost:8012"}/api/user`,
+            {
+              credentials: "include",
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+
+          if (res.ok) {
+            const fresh = await res.json();
+            setUser(fresh);
+          } else {
+            setUser(JSON.parse(storedUser)); // fall back to cookie copy
+          }
+        } catch (err) {
+          console.error("User refresh failed:", err);
+          setUser(JSON.parse(storedUser));
+        }
+      }
+      setIsLoading(false);
+    };
+    bootstrap();
+  }, []);
 
   const logout = () => {
-    updateUser(null)
-    window.location.href = '/login'
-  }
+    setUser(null);
+    window.location.href = "/login";
+  };
 
   return (
-    <UserContext.Provider value={{
-      user,
-      setUser: updateUser,
-      logout,
-      isLoading,
-    }}>
+    <UserContext.Provider value={{ user, setUser, logout, isLoading }}>
       {children}
     </UserContext.Provider>
-  )
-}
+  );
+};
 
+/* Hook */
 export const useUser = (): UserContextType => {
-  const context = useContext(UserContext)
-  if (!context) {
-    throw new Error("useUser must be used within a UserProvider")
-  }
-  return context
-}
+  const ctx = useContext(UserContext);
+  if (!ctx) throw new Error("useUser must be used inside <UserProvider>");
+  return ctx;
+};

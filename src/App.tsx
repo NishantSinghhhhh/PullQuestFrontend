@@ -1,115 +1,92 @@
+// src/App.tsx
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Navigate,
 } from "react-router-dom";
-import LoginPage from "./auth/LoginPage";
-import PrivateRoute from "./components/PrivateRoutes";
-import Website from "./pages/Website";
-import SignUp from "./auth/SignUp";
-import { Toaster } from "./components/ui/sonner";
-import OpenIssuePage from "./components/OpenIssuePage";
-import MaintainerDashboard from "./pages/MaintainerDashboard";
-import CompanyDashboard from "./pages/CompanyDashborad";
-import ReviewPrStep from "./Flows/RepoIssuesStep";
-import NewIssueForm from "./Flows/NewIssueForm";
-import RepoPrs from "./Flows/RepoPrs";
-import ContributorDashboard from "./pages/ContributorDashboard";
-import ContributorProfile from "./components/contributor/ContributorProfile";
-import IssueDetailsPage from "./components/IssueDetailsPage";
-import ContributorSettings from "./components/ContributorSettings";
 import { UserProvider } from "./context/UserProvider";
+import PrivateRoute from "./components/PrivateRoutes";
+import { Toaster } from "./components/ui/sonner";
 
-const App = () => {
+import Website from "./pages/Website";
+import LoginPage from "./auth/LoginPage";
+import SignUp    from "./auth/SignUp";
+
+import ContributorDashboard  from "./pages/ContributorDashboard";
+import ContributorProfile    from "./components/contributor/ContributorProfile";
+import IssueDetailsPage      from "./components/IssueDetailsPage";
+import ContributorSettings   from "./components/ContributorSettings";
+
+import DashboardPage          from "./Flows/MaintainerFlow";
+import DocsPage               from "./Flows/docs";
+import IntegrationsPage       from "./Flows/integrations";
+import OrgSettingsConfigPage  from "./Flows/org-settings";
+import OrgSettingsApiKeysPage from  "./Flows/org-settings";
+import ReferralsPage          from "./Flows/referrals";
+import ReportsPage            from "./Flows/reports";
+import SupportPage            from "./Flows/support";
+
+import OpenIssuePage from "./components/OpenIssuePage";
+import RepoPrs       from "./Flows/RepoPrs";
+import ReviewPrStep  from "./Flows/RepoIssuesStep";
+import CompanyDashboard from "./pages/CompanyDashborad";
+
+export default function App() {
   return (
     <UserProvider>
       <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<Website />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signUp" element={<SignUp />} />
-            
-            {/* contributor routes */}
-            <Route
-              path="/contributor/dashboard"
-              element={
-                <PrivateRoute allowedRoles={["contributor"]}>
-                  <ContributorDashboard />
-                </PrivateRoute>
-              }
-            />
+        <Routes>
+          {/* public */}
+          <Route path="/"    element={<Website />} />
+          <Route path="/login"   element={<LoginPage />} />
+          <Route path="/signUp"  element={<SignUp    />} />
 
-            <Route 
-              path="/contributor/profile" 
-              element={
-                <PrivateRoute allowedRoles={["contributor"]}>
-                  <ContributorProfile />
-                </PrivateRoute>
-              }
-            />
+          {/* contributor */}
+          <Route path="/contributor/*" element={
+            <PrivateRoute allowedRoles={["contributor"]}>
+              <Routes>
+                <Route path="dashboard" element={<ContributorDashboard  />} />
+                <Route path="profile"   element={<ContributorProfile    />} />
+                <Route path="issue/:issueId" element={<IssueDetailsPage />} />
+                <Route path="settings"  element={<ContributorSettings   />} />
+                <Route path="*" element={<Navigate to="dashboard" replace />} />
+              </Routes>
+            </PrivateRoute>
+          }/>
 
-            <Route 
-              path="/contributor/issue/:issueId" 
-              element={
-                <PrivateRoute allowedRoles={["contributor"]}>
-                  <IssueDetailsPage />
-                </PrivateRoute>
-              }
-            />
+          {/* maintainer */}
+          <Route path="/maintainer/*" element={
+              <Routes>
+                <Route path="dashboard"                element={<DashboardPage               />} />
+                <Route path="docs"                     element={<DocsPage                    />} />
+                <Route path="integrations"             element={<IntegrationsPage            />} />
+                <Route path="org-settings/config"      element={<OrgSettingsConfigPage       />} />
+                <Route path="org-settings/api-keys"    element={<OrgSettingsApiKeysPage      />} />
+                <Route path="referrals"                element={<ReferralsPage               />} />
+                <Route path="reports"                  element={<ReportsPage                 />} />
+                <Route path="support"                  element={<SupportPage                 />} />
+                <Route path="open-issue/:number"       element={<OpenIssuePage              />} />
+                <Route path="repo/:owner/:repo/issues" element={<RepoPrs                     />} />
+                <Route path="repo/:owner/:repo/prs"    element={<ReviewPrStep                />} />
+                <Route path="*" element={<Navigate to="dashboard" replace />} />
+              </Routes>
+          }/>
 
-            <Route 
-              path="/contributor/settings" 
-              element={
-                <PrivateRoute allowedRoles={["contributor"]}>
-                  <ContributorSettings />
-                </PrivateRoute>
-              }
-            />
+          {/* company */}
+          <Route path="/company/dashboard" element={
+            <PrivateRoute allowedRoles={["company"]}>
+              <CompanyDashboard />
+            </PrivateRoute>
+          }/>
 
-            {/* maintainer routes */}
-            <Route
-              path="/maintainer/dashboard"
-              element={
-                <PrivateRoute allowedRoles={["maintainer"]}>
-                  <MaintainerDashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/maintainer/open-issue/:number"
-              element={<OpenIssuePage />}
-            />
-            <Route
-              path="/maintainer/repo/:owner/:repo/issues/new"
-              element={<NewIssueForm />}
-            />
-            <Route
-              path="/maintainer/repo/:owner/:repo/issues"
-              element={<RepoPrs />}
-            />
-            <Route
-              path="/maintainer/repo/:owner/:repo/prs"
-              element={<ReviewPrStep />}
-            />
-            
-            {/* company routes */}
-            <Route
-              path="/company/dashboard"
-              element={
-                <PrivateRoute allowedRoles={["company"]}>
-                  <CompanyDashboard />
-                </PrivateRoute>
-              }
-            />
-          </Routes>
+          {/* catch-all */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
 
-          {/* ✅ Mount Toaster ONCE here */}
-          <Toaster />
-        </div>
+        <Toaster />
       </Router>
     </UserProvider>
   );
-};
-
-export default App;
+}
