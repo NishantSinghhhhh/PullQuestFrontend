@@ -1,7 +1,7 @@
 // src/hooks/useLogin.ts
 import { useState } from "react"
 import axios from "axios"
-import { useNavigate } from "react-router-dom"
+
 import { toast } from "sonner"
 import { useUser } from "../context/UserProvider"
 
@@ -15,7 +15,6 @@ interface LoginPayload {
 export const useLogin = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
   const { setUser } = useUser()
 
   const login = async (payload: LoginPayload) => {

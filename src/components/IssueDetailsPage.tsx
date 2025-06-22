@@ -6,10 +6,8 @@ import { useUser } from "../context/UserProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +19,6 @@ import {
 import {
   ArrowLeft,
   Star,
-  GitBranch,
   Calendar,
   User,
   MessageCircle,
@@ -32,12 +29,18 @@ import {
   AlertCircle,
   CheckCircle2,
   Github,
-  Tag,
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+export interface User {
+  id: string;
+  githubUsername: string;
+  // …other existing props…
+  coins: number;       // ← add this
+}
 
 interface IssueDetails {
   id: number;
@@ -357,17 +360,17 @@ export default function IssueDetailsPage() {
                 <Button
                   onClick={() => setStakeDialogOpen(true)}
                   className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                  disabled={!user || (user.coins || 0) < issue.stakingRequired}
+                  // disabled={!user || (user.coins || 0) < issue.stakingRequired}
                 >
                   <Coins className="w-4 h-4 mr-2" />
                   Stake & Start Working
                 </Button>
 
-                {user && (user.coins || 0) < issue.stakingRequired && (
+                {/* {user && (user.coins || 0) < issue.stakingRequired && (
                   <p className="text-xs text-red-600 text-center">
                     Insufficient coins. You need {issue.stakingRequired - (user.coins || 0)} more coins.
                   </p>
-                )}
+                )} */}
               </CardContent>
             </Card>
 
@@ -480,7 +483,7 @@ export default function IssueDetailsPage() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex justify-between items-center text-sm">
                 <span>Your current balance:</span>
-                <span className="font-medium">{user?.coins || 0} coins</span>
+                {/* <span className="font-medium">{user?.coins || 0} coins</span> */}
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span>Stake amount:</span>
@@ -489,7 +492,7 @@ export default function IssueDetailsPage() {
               <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between items-center">
                 <span className="font-medium">Balance after stake:</span>
                 <span className="font-bold">
-                  {(user?.coins || 0) - stakeAmount} coins
+                  {/* {(user?.coins || 0) - stakeAmount} coins */}
                 </span>
               </div>
             </div>

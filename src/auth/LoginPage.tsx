@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Loader2, Github, ArrowRight, Coins, Check } from "lucide-react";
+import { Eye, EyeOff, Loader2, Github, ArrowRight, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLogin } from "../hooks/UseLogin";
 import { useUser } from "@/context/UserProvider";
@@ -36,6 +36,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoading, error } = useLogin();
 
+  if(isVerified){
+    
+  }
   // Handle OAuth redirect from GitHub
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

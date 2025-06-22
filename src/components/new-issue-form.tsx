@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { useUser } from "../context/UserProvider"
+
 import axios from "axios"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -28,7 +28,6 @@ const PRESET_LABELS = [
 
 export default function NewIssueForm() {
   const { owner, repo } = useParams<{ owner: string; repo: string }>()
-  const { user } = useUser()
   const navigate = useNavigate()
 
   /* --------------- form state --------------- */

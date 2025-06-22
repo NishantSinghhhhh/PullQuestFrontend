@@ -16,7 +16,6 @@ import {
   Github,
   Settings,
   Search,
-  Filter,
   Plus,
   Target,
   CheckCircle2,

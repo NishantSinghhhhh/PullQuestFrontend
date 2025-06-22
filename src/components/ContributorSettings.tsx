@@ -20,13 +20,10 @@ import {
   User,
   Save,
   RefreshCw,
-  Trophy,
-  Coins,
   TrendingUp,
   Star,
   GitBranch,
   Calendar,
-  Settings,
   Eye,
 } from "lucide-react";
 import axios from "axios";
@@ -76,7 +73,7 @@ interface RepositoryData {
 }
 
 export default function ContributorSettings() {
-  const { user, setUser } = useUser();
+  const { user } = useUser();
   const navigate = useNavigate();
   
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -453,7 +450,7 @@ export default function ContributorSettings() {
                   <CardContent>
                     {topLanguages.length > 0 ? (
                       <div className="space-y-4">
-                        {topLanguages.map((language, index) => (
+                        {topLanguages.map((language) => (
                           <div key={language.name}>
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center space-x-2">

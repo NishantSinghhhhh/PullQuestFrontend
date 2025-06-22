@@ -2,10 +2,8 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
 } from "react-router-dom";
 import LoginPage from "./auth/LoginPage";
-import Dashboard from "./pages/Dashboard";
 import PrivateRoute from "./components/PrivateRoutes";
 import Website from "./pages/Website";
 import SignUp from "./auth/SignUp";

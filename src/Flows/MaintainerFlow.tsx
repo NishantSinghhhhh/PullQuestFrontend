@@ -17,7 +17,6 @@ const STEP_NAMES = [
 
 export default function MaintainerFlow() {
   const [step, setStep] = useState(0)
-  const [selectedOrg, setSelectedOrg] = useState<string | null>(null)
 
   /* ---------- Navigation helpers ---------- */
   const next = () => setStep((s) => Math.min(TOTAL_STEPS - 1, s + 1))

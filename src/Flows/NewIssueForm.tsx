@@ -115,15 +115,15 @@ export default function NewIssueForm() {
         if (!createRes.success) {
           throw new Error(createRes.message || "GitHub issue creation failed");
         }
-        const ghIssue = createRes.data!;
+        const ghIssue = createRes;
         
         console.log("GitHub issue created:", ghIssue);
         console.log("User data:", user);
         
         // 3) Enhanced ingest payload with aRepRepository Dashboardository Dashboardll required data
         const ingestPayload = {
-          userId: user._id || user.id, // Make sure this field exists
-          githubUsername: user.profile?.username || user.username || user.githubUsername,
+          userId: user.id, // Ensure this field exists
+          githubUsername: user.githubUsername,
           repository: { 
             owner, 
             repo 
