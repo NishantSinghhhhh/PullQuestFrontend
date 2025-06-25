@@ -15,7 +15,8 @@ interface Repo {
   visibility?: "Public" | "Private";
 }
 
-interface RepositoryCardListProps {
+// src/components/RepositoryCardList.tsx
+export interface RepositoryCardListProps {
   repos: Repo[];
   loading: boolean;
   error: string | null;
@@ -24,7 +25,12 @@ interface RepositoryCardListProps {
   perPage: number;
   onPageChange: (page: number) => void;
   onPerPageChange: (perPage: number) => void;
+
+  // new:
+  isClosing: boolean;
+  onCloseComplete: () => void;
 }
+
 
 export function RepositoryCardList({
   repos,

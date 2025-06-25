@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser } from "../context/UserProvider";
-import { RepositoryCardList } from "@/components/repositorycard-small";
+import { RepositoryCardList } from "../components/maintainerDashboard/repositorycard-small";
 
 interface Repo {
   name: string;
@@ -86,6 +86,8 @@ export default function RepoStep() {
           setPerPage(pp);
           setCurrentPage(1);
         }}
+        isClosing={false}
+        onCloseComplete={() => console.log("Close complete")}
       />
     </div>
   );

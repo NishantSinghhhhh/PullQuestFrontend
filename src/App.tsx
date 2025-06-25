@@ -56,7 +56,6 @@ export default function App() {
             </PrivateRoute>
           }/>
 
-          {/* maintainer */}
           <Route path="/maintainer/*" element={
               <Routes>
                 <Route path="dashboard"                element={<DashboardPage               />} />

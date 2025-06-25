@@ -1,10 +1,11 @@
-// src/components/OrgGeneralSettings.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import { useUser } from "@/context/UserProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -14,158 +15,347 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { RepositoryCardList } from "../repositoryCard-org";
+import { customAlphabet } from "nanoid";
 
-interface Org {
-  login: string;
+// nanoid setup for 20-char alphanumeric slug
+const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+const makeSlug = customAlphabet(ALPHABET, 20);
+
+interface Repo {
   id: number;
-  url: string;
-  avatar_url: string;
+  name: string;
+  full_name: string;
+  html_url: string;
+  description: string;
+  language: string | null;
+  stargazers_count: number;
+  updated_at: string;
+  open_issues_count: number;
+  private?: boolean;
+  visibility?: "Public" | "Private";
 }
 
 export function OrgGeneralSettings() {
   const { user } = useUser();
-  const contextUsername = user?.githubUsername ?? "";
   const token = user?.accessToken;
+  const defaultUser = user?.githubUsername ?? "";
+  const role = user?.role;
+  // --- form & fetch state ---
+  const [githubUsername, setGithubUsername] = useState(defaultUser);
+  const [repos, setRepos] = useState<Repo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // allow override if needed:
-  const [githubUsername, setGithubUsername] = useState(contextUsername);
-  const [orgs, setOrgs] = useState<Org[]>([]);
-  const [loadingOrgs, setLoadingOrgs] = useState(false);
-  const [orgsError, setOrgsError] = useState<string | null>(null);
+  // --- selection & pagination ---
+  const [selectedLinks, setSelectedLinks] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
-  // keep input in sync if context changes
+  // --- context state & editing ---
+  const [isClosing, setIsClosing] = useState(false);
+  const [ctxLoading, setCtxLoading] = useState(false);
+  const [ctxError, setCtxError] = useState<string | null>(null);
+  const [generatedCtx, setGeneratedCtx] = useState<string>("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCtx, setEditedCtx] = useState<string>("");
+
+  // local save state
+  const [savedCtxLocal, setSavedCtxLocal] = useState(false);
+  const handleSaveContextLocal = () => {
+    setSavedCtxLocal(true);
+  };
+
+  // API key display state
+  const [apiKey, setApiKey] = useState<string | null>(null);
+
+  // Sync editedCtx when generatedCtx changes
   useEffect(() => {
-    if (contextUsername) {
-      setGithubUsername(contextUsername);
-    }
-  }, [contextUsername]);
+    setEditedCtx(generatedCtx);
+  }, [generatedCtx]);
 
-  const fetchOrgs = async () => {
+  // Sync username input
+  useEffect(() => {
+    if (defaultUser) setGithubUsername(defaultUser);
+  }, [defaultUser]);
+
+  // Fetch repos from backend
+  const fetchRepos = async () => {
     if (!githubUsername) {
-      setOrgsError("Please enter a GitHub username");
+      setError("Please enter a GitHub username or org");
       return;
     }
     if (!token) {
-      setOrgsError("No auth token available – please log in again");
+      setError("No auth token available – please log in again");
       return;
     }
-
-    setLoadingOrgs(true);
-    setOrgsError(null);
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL || "http://localhost:8012"}` +
           `/api/maintainer/orgs-by-username?githubUsername=${encodeURIComponent(
             githubUsername
           )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       const body = await res.json();
-      console.log("📥 Raw response:", body);
-      console.log("📥 Orgs array:", body.data);
-
-      if (res.ok && body.success) {
-        setOrgs(body.data);
-      } else {
-        throw new Error(body.message || "Failed to fetch orgs");
-      }
+      if (!res.ok || !body.success) throw new Error(body.message || `HTTP ${res.status}`);
+      const normalized: Repo[] = body.data.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        full_name: r.full_name,
+        html_url: r.html_url,
+        description: r.description,
+        language: r.language ?? "Unknown",
+        stargazers_count: r.stargazers_count,
+        updated_at: r.updated_at,
+        open_issues_count: r.open_issues_count,
+        private: r.private,
+        visibility: r.private ? "Private" : "Public",
+      }));
+      setRepos(normalized);
+      setSelectedLinks([]);
+      setCurrentPage(1);
+      setSearchQuery("");
     } catch (err: any) {
-      setOrgsError(err.message);
+      setError(err.message);
     } finally {
-      setLoadingOrgs(false);
+      setLoading(false);
     }
   };
 
+  // Selection handlers
+  const handleSelectAll = useCallback((checked: boolean) => {
+    setSelectedLinks(checked ? repos.map((r) => r.html_url) : []);
+  }, [repos]);
+
+  const handleSelectRow = useCallback((name: string, checked: boolean) => {
+    const repo = repos.find((r) => r.name === name);
+    if (!repo) return;
+    setSelectedLinks((prev) =>
+      checked ? Array.from(new Set([...prev, repo.html_url])) : prev.filter((u) => u !== repo.html_url)
+    );
+  }, [repos]);
+
+  // Pagination handlers
+  const handlePageChange = useCallback((p: number) => setCurrentPage(p), []);
+  const handlePerPageChange = useCallback((n: number) => {
+    setPerPage(n);
+    setCurrentPage(1);
+  }, []);
+
+  // Generate context
+  const handleGenerate = async () => {
+    setCtxError(null);
+    setCtxLoading(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:8012"}/api/LLM/generate-context`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ repos: selectedLinks }),
+        }
+      );
+      const body = await res.json();
+      if (!res.ok || !body.success) throw new Error(body.message || `HTTP ${res.status}`);
+      setGeneratedCtx(body.data);
+      setIsClosing(true);
+    } catch (err: any) {
+      setCtxError(err.message);
+      setIsClosing(false);
+    } finally {
+      setCtxLoading(false);
+    }
+  };
+
+// Generate & POST API Key
+const handleGenerateApiKey = async () => {
+  if (!generatedCtx) {
+    setError("You need to generate context first.");
+    return;
+  }
+
+  const prefix     = githubUsername.slice(0, 19);
+  const randomPart = makeSlug().slice(0, 20 - prefix.length);
+  const secretKey  = `${prefix}${randomPart}`;
+
+  const payload = {
+    secretKey,
+    context:            generatedCtx,
+    orgName:            githubUsername,   // org you’re saving
+    repoLinks:          selectedLinks,
+    role,                                // e.g. "maintainer"
+    maintainerUsername: user?.githubUsername,
+    // maintainerUserId:   user?._id,
+  };
+
+  /* 👇 LOG everything being sent */
+  console.log("📤 Sending API-key payload:", payload);
+
+  try {
+    const res  = await fetch(
+      `${import.meta.env.VITE_API_URL || "http://localhost:8012"}/api/maintainer/api-key`,
+      {
+        method:  "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:  `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+    const body = await res.json();
+    if (!body.success) throw new Error(body.message);
+    setApiKey(body.data.secretKey);
+  } catch (err: any) {
+    setError(err.message);
+  }
+};
+
+
   return (
     <div className="space-y-8">
-      {/* GitHub → Orgs lookup */}
+      {/* 1️⃣ Fetch UI */}
       <Card>
         <CardHeader>
-          <CardTitle>Fetch Your GitHub Organizations</CardTitle>
-          <CardDescription>
-            We’ll use your GitHub username (from your profile) and your auth
-            token to look up all the orgs you belong to.
-          </CardDescription>
+          <CardTitle>Fetch Your GitHub Repositories</CardTitle>
+          <CardDescription>Fetch repos using your GitHub username/org.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-4">
             <div className="flex-1 space-y-2">
-              <Label htmlFor="github-username">GitHub Username</Label>
-              <Input
-                id="github-username"
-                placeholder="octocat"
-                value={githubUsername}
-                onChange={(e) => setGithubUsername(e.target.value)}
-              />
+              <Label htmlFor="github-username">GitHub Username or Org</Label>
+              <Input id="github-username" value={githubUsername} onChange={(e) => setGithubUsername(e.target.value)} />
             </div>
-            <Button onClick={fetchOrgs} disabled={loadingOrgs}>
-              {loadingOrgs ? "Loading..." : "Fetch Orgs"}
-            </Button>
+            <Button onClick={fetchRepos} disabled={loading}>{loading ? "Loading…" : "Fetch Repos"}</Button>
           </div>
-          {orgsError && <p className="text-sm text-red-600">{orgsError}</p>}
-          {orgs.length > 0 && (
-            <ul className="space-y-2">
-              {orgs.map((o) => (
-                <li key={o.id} className="flex items-center space-x-2">
-                  <img
-                    src={o.avatar_url}
-                    alt={`${o.login} avatar`}
-                    className="w-6 h-6 rounded-full"
-                  />
-                  <a
-                    href={o.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-blue-600 hover:underline"
-                  >
-                    {o.login}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+          {error && <p className="text-sm text-red-600">{error}</p>}
         </CardContent>
       </Card>
 
-      {/* Preferences */}
+      {/* 2️⃣ Search UI */}
+      {repos.length > 0 && !isClosing && (
+        <Card>
+          <CardContent className="pt-6">
+            <Label htmlFor="search-repos">Search Repositories</Label>
+            <Input id="search-repos" placeholder="Search…" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="mt-2" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 3️⃣ Repo list */}
+      {repos.length > 0 && !isClosing && (
+        <RepositoryCardList
+          repos={repos}
+          loading={loading}
+          error={error}
+          searchQuery={searchQuery}
+          currentPage={currentPage}
+          perPage={perPage}
+          onPageChange={handlePageChange}
+          onPerPageChange={handlePerPageChange}
+          onSelectAll={handleSelectAll}
+          onSelectRow={handleSelectRow}
+        />
+      )}
+
+      {/* 4️⃣ Generate context */}
+      {selectedLinks.length > 0 && !isClosing && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Generate Context</CardTitle>
+            <CardDescription>Send selected repos to backend to build your context.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-right space-y-2">
+            {ctxError && <p className="text-sm text-red-600">{ctxError}</p>}
+            <Button onClick={handleGenerate} disabled={ctxLoading}>
+              {ctxLoading ? "Generating…" : "Generate context of repos"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 5️⃣ Repository Context with Edit/Save */}
+      {generatedCtx && !savedCtxLocal && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Repository Context</CardTitle>
+          </CardHeader>
+          <CardContent className="prose max-w-none">
+            {isEditing ? (
+              <>
+                <Textarea rows={8} value={editedCtx} onChange={(e) => setEditedCtx(e.target.value)} className="w-full border-gray-300" />
+                <div className="flex justify-end space-x-2 mt-2">
+                  <Button variant="outline" onClick={() => { setEditedCtx(generatedCtx); setIsEditing(false); }}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => { setGeneratedCtx(editedCtx); setIsEditing(false); }}>
+                    Save
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <ReactMarkdown>{generatedCtx}</ReactMarkdown>
+                <div className="text-right mt-2">
+                  <Button variant="outline" onClick={() => { setEditedCtx(generatedCtx); setIsEditing(true); }}>
+                    Edit
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 6️⃣ Save Context */}
+      {generatedCtx && !savedCtxLocal && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Save Context</CardTitle>
+          </CardHeader>
+          <CardContent className="text-right">
+            <Button onClick={handleSaveContextLocal}>Save Context</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 7️⃣ Create & display API Key */}
+      {savedCtxLocal && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create API Key</CardTitle>
+            <CardDescription>Save your org’s key and context to the server.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-right space-y-2">
+            <Button onClick={handleGenerateApiKey}>Create API Key</Button>
+            {apiKey && (
+              <p className="mt-2 text-sm break-all">🔑 <strong>{apiKey}</strong></p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 8️⃣ Preferences */}
       <Card>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
-          <CardDescription>
-            Configure your organization's default settings.
-          </CardDescription>
+          <CardDescription>Your organization preferences.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <Label>Auto-review new repositories</Label>
-              <p className="text-sm text-gray-600">
-                Automatically enable CodeRabbit for new repositories
-              </p>
-            </div>
+            <Label>Auto-review new repositories</Label>
             <Switch defaultChecked />
           </div>
           <div className="flex items-center justify-between">
-            <div>
-              <Label>Email notifications</Label>
-              <p className="text-sm text-gray-600">
-                Receive email updates about code reviews
-              </p>
-            </div>
+            <Label>Email notifications</Label>
             <Switch defaultChecked />
           </div>
           <div className="flex items-center justify-between">
-            <div>
-              <Label>Weekly reports</Label>
-              <p className="text-sm text-gray-600">
-                Get weekly summary reports via email
-              </p>
-            </div>
+            <Label>Weekly reports</Label>
             <Switch />
           </div>
         </CardContent>
